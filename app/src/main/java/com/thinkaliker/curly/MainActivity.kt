@@ -20,6 +20,7 @@ import okhttp3.Callback
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
+import org.json.JSONException
 import org.json.JSONObject
 import java.io.IOException
 
@@ -32,6 +33,7 @@ class MainActivity : AppCompatActivity() {
     var responseText = ""
     var resultText = ""
     var prettyPrintFlag = false
+    var showHeadersFlag = false
 
     val requestTypes = arrayOf("GET", "POST")
     val endpoints = arrayOf("https://am.i.mullvad.net/json", "https://internetdb.shodan.io", "http://ip-api.com/json", "https://wttr.in/?format=j1", "CUSTOM")
@@ -95,15 +97,26 @@ class MainActivity : AppCompatActivity() {
         val prettyPrint = findViewById<Switch>(R.id.jsonSwitch)
         prettyPrint?.setOnCheckedChangeListener({ _ , isChecked ->
             prettyPrintFlag = isChecked
+            val outputText = if (showHeadersFlag) headerText else ""
             if (isChecked && resultText != "") {
-                resultText = headerText + prettyPrintJson(responseText)
-
+                resultText = outputText + prettyPrintJson(responseText)
             } else {
-                resultText = headerText + responseText
+                resultText = outputText + responseText
             }
             resultId.setText(resultText)
         })
 
+        val showHeaders = findViewById<Switch>(R.id.headerSwitch)
+        showHeaders?.setOnCheckedChangeListener({ _ , isChecked ->
+            showHeadersFlag = isChecked
+            val outputText = if (prettyPrintFlag) prettyPrintJson(responseText) else responseText
+            if (isChecked && resultText != "") {
+                resultText = headerText + outputText
+            } else {
+                resultText = outputText
+            }
+            resultId.setText(resultText)
+        })
 
 
         val sendId = findViewById<Button>(R.id.button)
@@ -115,7 +128,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun prettyPrintJson(json : String) : String {
-        return JSONObject(json).toString(2)
+        try {
+            return JSONObject(json).toString(2)
+        } catch (e : JSONException) {
+            return json
+        }
     }
 
     fun sendRequest(reqType : String, endpoint : String, textView: TextView, prettyPrintFlag : Boolean) : String {
@@ -143,10 +160,16 @@ class MainActivity : AppCompatActivity() {
                         headerText = ""
                         responseText = ""
                         resultText = ""
+
+                        headerText += "Headers:\n"
                         for ((name, value) in response.headers) {
                             headerText += "$name: $value\n"
                         }
-                        resultText += headerText
+                        headerText += "\nResponse:\n"
+
+                        if (showHeadersFlag) {
+                            resultText += headerText
+                        }
                         responseText = response.body!!.string()
 
                         if (prettyPrintFlag) {
