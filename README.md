@@ -16,7 +16,6 @@ Custom endpoint (just type a URL in)
 
 ## TODO
 
-- Icon
 - Implement POST function
 - Find more endpoints?
 - Github build pipeline
